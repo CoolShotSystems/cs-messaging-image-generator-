@@ -17,8 +17,17 @@ const PRINCE_KEY = process.env.PRINCE_API_KEY;
 const GIFTED_KEY = process.env.GIFTED_API_KEY;
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 
-// 🔼 Upload to Imgur
+// 🔐 Check for missing keys
+if (!GIFTED_KEY) console.warn('⚠️ GIFTED_API_KEY is missing.');
+if (!PRINCE_KEY) console.warn('⚠️ PRINCE_API_KEY is missing.');
+if (!IMGUR_CLIENT_ID) console.warn('⚠️ IMGUR_CLIENT_ID is missing. Image upload will fail.');
+
+// 🖼️ Upload to Imgur
 app.post('/upload', upload.single('image'), async (req, res) => {
+  if (!IMGUR_CLIENT_ID) {
+    return res.status(500).json({ error: 'Imgur client ID not configured.' });
+  }
+
   try {
     const response = await axios.post('https://api.imgur.com/3/image', req.file.buffer, {
       headers: {
@@ -36,16 +45,16 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 // 💬 Chat
 app.post('/chat', async (req, res) => {
   const { prompt } = req.body;
-  console.log('Chat prompt:', prompt);
+  console.log('📨 Chat prompt:', prompt);
 
   try {
     const response = await axios.get('https://api.giftedtech.co.ke/api/ai/gpt', {
       params: { apikey: GIFTED_KEY, q: prompt }
     });
-    console.log('Chat response:', response.data);
-    res.json({ reply: response.data.reply });
+    console.log('✅ Chat response:', response.data);
+    res.json({ reply: response.data.reply || 'No reply received.' });
   } catch (err) {
-    console.error('Chat error:', err.response?.data || err.message);
+    console.error('❌ Chat error:', err.response?.data || err.message);
     res.json({ reply: 'Chat service unavailable.' });
   }
 });
@@ -56,11 +65,11 @@ app.get('/quote', async (req, res) => {
     const response = await axios.get('https://api.giftedtech.co.ke/api/fun/quotes', {
       params: { apikey: GIFTED_KEY }
     });
-    console.log('Quote response:', response.data);
-    res.json({ quote: response.data.quote });
+    console.log('✅ Quote response:', response.data);
+    res.json({ quote: response.data.quote || 'No quote available.' });
   } catch (err) {
-    console.error('Quote error:', err.response?.data || err.message);
-    res.json({ quote: 'No quote available.' });
+    console.error('❌ Quote error:', err.response?.data || err.message);
+    res.json({ quote: 'Quote service unavailable.' });
   }
 });
 
@@ -70,11 +79,11 @@ app.get('/motivation', async (req, res) => {
     const response = await axios.get('https://api.princetechn.com/api/fun/motivation', {
       params: { apikey: PRINCE_KEY }
     });
-    console.log('Motivation response:', response.data);
-    res.json({ motivation: response.data.motivation });
+    console.log('✅ Motivation response:', response.data);
+    res.json({ motivation: response.data.motivation || 'No motivation available.' });
   } catch (err) {
-    console.error('Motivation error:', err.response?.data || err.message);
-    res.json({ motivation: 'No motivation available.' });
+    console.error('❌ Motivation error:', err.response?.data || err.message);
+    res.json({ motivation: 'Motivation service unavailable.' });
   }
 });
 
@@ -84,11 +93,11 @@ app.get('/advice', async (req, res) => {
     const response = await axios.get('https://api.giftedtech.co.ke/api/fun/advice', {
       params: { apikey: GIFTED_KEY }
     });
-    console.log('Advice response:', response.data);
-    res.json({ advice: response.data.advice });
+    console.log('✅ Advice response:', response.data);
+    res.json({ advice: response.data.advice || 'No advice available.' });
   } catch (err) {
-    console.error('Advice error:', err.response?.data || err.message);
-    res.json({ advice: 'No advice available.' });
+    console.error('❌ Advice error:', err.response?.data || err.message);
+    res.json({ advice: 'Advice service unavailable.' });
   }
 });
 
@@ -96,7 +105,7 @@ app.get('/advice', async (req, res) => {
 app.post('/image/:style', async (req, res) => {
   const { prompt } = req.body;
   const style = req.params.style;
-  console.log(`Image prompt: "${prompt}" | Style: "${style}"`);
+  console.log(`🎨 Image prompt: "${prompt}" | Style: "${style}"`);
 
   const endpoints = {
     text2img: `https://api.giftedtech.co.ke/api/ai/text2img`,
@@ -113,10 +122,10 @@ app.post('/image/:style', async (req, res) => {
     const response = await axios.get(url, {
       params: { apikey: GIFTED_KEY, prompt }
     });
-    console.log('Image response:', response.data);
-    res.json({ imageUrl: response.data.image || response.data.imageUrl });
+    console.log('✅ Image response:', response.data);
+    res.json({ imageUrl: response.data.image || response.data.imageUrl || 'Image not returned.' });
   } catch (err) {
-    console.error('Image error:', err.response?.data || err.message);
+    console.error('❌ Image error:', err.response?.data || err.message);
     res.json({ imageUrl: null, error: 'Image generation failed.' });
   }
 });
@@ -124,16 +133,16 @@ app.post('/image/:style', async (req, res) => {
 // 🖼️ Vision-to-Text
 app.post('/vision', async (req, res) => {
   const { imageUrl, prompt } = req.body;
-  console.log('Vision request:', imageUrl, prompt);
+  console.log('🧠 Vision request:', imageUrl, prompt);
 
   try {
     const response = await axios.get('https://api.giftedtech.co.ke/api/ai/vision', {
       params: { apikey: GIFTED_KEY, url: imageUrl, prompt }
     });
-    console.log('Vision response:', response.data);
-    res.json({ description: response.data.description });
+    console.log('✅ Vision response:', response.data);
+    res.json({ description: response.data.description || 'No description returned.' });
   } catch (err) {
-    console.error('Vision error:', err.response?.data || err.message);
+    console.error('❌ Vision error:', err.response?.data || err.message);
     res.json({ description: 'Unable to describe image.' });
   }
 });
@@ -141,16 +150,16 @@ app.post('/vision', async (req, res) => {
 // 🧹 Remove Background
 app.post('/removebg', async (req, res) => {
   const { imageUrl } = req.body;
-  console.log('RemoveBG request:', imageUrl);
+  console.log('🧹 RemoveBG request:', imageUrl);
 
   try {
     const response = await axios.get('https://api.giftedtech.co.ke/api/tools/removebg', {
       params: { apikey: GIFTED_KEY, url: imageUrl }
     });
-    console.log('RemoveBG response:', response.data);
-    res.json({ imageUrl: response.data.image });
+    console.log('✅ RemoveBG response:', response.data);
+    res.json({ imageUrl: response.data.image || 'No image returned.' });
   } catch (err) {
-    console.error('RemoveBG error:', err.response?.data || err.message);
+    console.error('❌ RemoveBG error:', err.response?.data || err.message);
     res.json({ imageUrl: null, error: 'Background removal failed.' });
   }
 });
@@ -158,18 +167,20 @@ app.post('/removebg', async (req, res) => {
 // ✨ Remini Enhancement
 app.post('/remini', async (req, res) => {
   const { imageUrl } = req.body;
-  console.log('Remini request:', imageUrl);
+  console.log('✨ Remini request:', imageUrl);
 
   try {
     const response = await axios.get('https://api.giftedtech.co.ke/api/tools/remini', {
       params: { apikey: GIFTED_KEY, url: imageUrl }
     });
-    console.log('Remini response:', response.data);
-    res.json({ imageUrl: response.data.image });
+    console.log('✅ Remini response:', response.data);
+    res.json({ imageUrl: response.data.image || 'No image returned.' });
   } catch (err) {
-    console.error('Remini error:', err.response?.data || err.message);
+    console.error('❌ Remini error:', err.response?.data || err.message);
     res.json({ imageUrl: null, error: 'Image enhancement failed.' });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
