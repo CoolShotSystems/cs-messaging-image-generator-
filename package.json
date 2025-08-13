@@ -1,0 +1,25 @@
+{
+  "name": "cs-messaging-image-generator",
+  "version": "1.0.0",
+  "description": "CS Assistant by Cool Shot Systems. Messaging, image generation, and quotes powered by fallback APIs.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "CS Assistant",
+    "Cool Shot Systems",
+    "AI",
+    "chat",
+    "image",
+    "quotes"
+  ],
+  "author": "Heritage Oladoye",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
