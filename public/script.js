@@ -1,12 +1,26 @@
-async function fetchQuote() {
-  try {
-    const res = await fetch('/quote');
-    const data = await res.json();
-    console.log('Quote response:', data);
-    document.getElementById('quoteBox').innerText = `“${data.result || data.quote || 'Stay inspired. Create boldly.'}”`;
-  } catch {
-    document.getElementById('quoteBox').innerText = '“Unable to load quote.”';
-  }
+let socket;
+
+function initSocket() {
+  socket = new WebSocket(`ws://${window.location.host}`);
+
+  socket.addEventListener('open', () => {
+    console.log('✅ Connected to WebSocket server');
+  });
+
+  socket.addEventListener('message', event => {
+    try {
+      const msg = JSON.parse(event.data);
+      console.log('📩 Incoming WS message:', msg);
+      appendMessage(msg.role, msg.text);
+    } catch (err) {
+      console.error('WebSocket parse error:', err, event.data);
+    }
+  });
+
+  socket.addEventListener('close', () => {
+    console.warn('⚠️ WebSocket disconnected, retrying in 3s...');
+    setTimeout(initSocket, 3000);
+  });
 }
 
 function saveMessage(role, text) {
@@ -18,12 +32,33 @@ function saveMessage(role, text) {
 function loadMessages() {
   const messages = JSON.parse(localStorage.getItem('chatHistory') || '[]');
   const chatWindow = document.getElementById('chatWindow');
-  messages.forEach(msg => {
-    const bubble = document.createElement('div');
-    bubble.className = msg.role === 'user' ? 'user-message' : 'cs-message';
-    bubble.innerText = msg.text;
+  chatWindow.innerHTML = '';
+  messages.forEach(msg => appendMessage(msg.role, msg.text, false));
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function appendMessage(role, text, save = true) {
+  const chatWindow = document.getElementById('chatWindow');
+  const bubble = document.createElement('div');
+  bubble.className = role === 'user' ? 'user-message' : 'cs-message';
+
+  if (text.startsWith('data:image') || text.startsWith('http')) {
+    bubble.innerText = role === 'cs' ? 'Here’s your image:' : text;
     chatWindow.appendChild(bubble);
-  });
+
+    if (role === 'cs') {
+      const img = document.createElement('img');
+      img.src = text;
+      img.style.maxWidth = '300px';
+      img.style.marginTop = '10px';
+      chatWindow.appendChild(img);
+    }
+  } else {
+    bubble.innerText = text;
+    chatWindow.appendChild(bubble);
+  }
+
+  if (save) saveMessage(role, text);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
@@ -62,26 +97,16 @@ async function uploadImage() {
 async function sendRequest() {
   const feature = document.getElementById('featureSelector').value;
   const input = document.getElementById('userInput').value.trim();
-  const chatWindow = document.getElementById('chatWindow');
 
   if (!feature || !input) return;
 
-  // Show user message
-  const userBubble = document.createElement('div');
-  userBubble.className = 'user-message';
-  userBubble.innerText = input;
-  chatWindow.appendChild(userBubble);
-  saveMessage('user', input);
-  console.log('✅ User message appended:', input);
+  appendMessage('user', input);
 
-  // Clear input and refocus
   document.getElementById('userInput').value = '';
   document.getElementById('userInput').focus();
 
-  let response = 'Processing...';
-
   try {
-    let res, data;
+    let res, data, response;
 
     if (feature === 'chat') {
       res = await fetch('/chat', {
@@ -90,12 +115,10 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
-      console.log('Chat response:', data);
       response = data.result || data.reply || 'No reply received.';
     } else if (['quote', 'motivation', 'advice'].includes(feature)) {
       res = await fetch(`/${feature}`);
       data = await res.json();
-      console.log(`${feature} response:`, data);
       response = data.result || data[feature] || `No ${feature} available.`;
     } else if (['vision', 'removebg', 'remini'].includes(feature)) {
       const payload = { imageUrl: input };
@@ -106,7 +129,6 @@ async function sendRequest() {
         body: JSON.stringify(payload)
       });
       data = await res.json();
-      console.log(`${feature} response:`, data);
       response = data.result || data.description || data.imageUrl || 'Image processing failed.';
     } else {
       res = await fetch(`/image/${feature}`, {
@@ -115,38 +137,40 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
-      console.log('Image generation response:', data);
       response = data.result || data.image || data.imageUrl || data.error || 'Image generation failed.';
     }
+
+    appendMessage('cs', response);
   } catch (err) {
     console.error('Request error:', err);
-    response = 'Something went wrong. Please try again.';
+    appendMessage('cs', 'Something went wrong. Please try again.');
   }
+}
 
-  // Show CS Assistant response
-  const csBubble = document.createElement('div');
-  csBubble.className = 'cs-message';
+// Rotating quote function
+let quotes = [];
+let quoteIndex = 0;
 
-  if (response.startsWith('data:image') || response.startsWith('http')) {
-    csBubble.innerText = 'Here’s your image:';
-    chatWindow.appendChild(csBubble);
-
-    const img = document.createElement('img');
-    img.src = response;
-    img.style.maxWidth = '300px';
-    img.style.marginTop = '10px';
-    chatWindow.appendChild(img);
-  } else {
-    csBubble.innerText = response;
-    chatWindow.appendChild(csBubble);
+async function fetchQuotesList() {
+  try {
+    const res = await fetch('/quotes'); // should return an array of quotes
+    quotes = await res.json();
+    if (quotes.length > 0) rotateQuote();
+  } catch (err) {
+    console.error('Quote fetch error:', err);
   }
+}
 
-  saveMessage('cs', response);
-  console.log('✅ Assistant response appended:', response);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
+function rotateQuote() {
+  if (quotes.length === 0) return;
+  const quoteBox = document.getElementById('quoteBox');
+  quoteBox.innerText = `“${quotes[quoteIndex]}”`;
+  quoteIndex = (quoteIndex + 1) % quotes.length;
+  setTimeout(rotateQuote, 5000); // change every 5 seconds
 }
 
 window.onload = () => {
-  fetchQuote();
+  initSocket();
+  fetchQuotesList();
   loadMessages();
 };
