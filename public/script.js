@@ -2,7 +2,8 @@ async function fetchQuote() {
   try {
     const res = await fetch('/quote');
     const data = await res.json();
-    document.getElementById('quoteBox').innerText = `“${data.quote || 'Stay inspired. Create boldly.'}”`;
+    console.log('Quote response:', data);
+    document.getElementById('quoteBox').innerText = `“${data.result || data.quote || 'Stay inspired. Create boldly.'}”`;
   } catch {
     document.getElementById('quoteBox').innerText = '“Unable to load quote.”';
   }
@@ -71,6 +72,7 @@ async function sendRequest() {
   userBubble.innerText = input;
   chatWindow.appendChild(userBubble);
   saveMessage('user', input);
+  console.log('✅ User message appended:', input);
 
   // Clear input and refocus
   document.getElementById('userInput').value = '';
@@ -94,7 +96,7 @@ async function sendRequest() {
       res = await fetch(`/${feature}`);
       data = await res.json();
       console.log(`${feature} response:`, data);
-      response = data[feature] || `No ${feature} available.`;
+      response = data.result || data[feature] || `No ${feature} available.`;
     } else if (['vision', 'removebg', 'remini'].includes(feature)) {
       const payload = { imageUrl: input };
       if (feature === 'vision') payload.prompt = input;
@@ -105,7 +107,7 @@ async function sendRequest() {
       });
       data = await res.json();
       console.log(`${feature} response:`, data);
-      response = data.description || data.imageUrl || 'Image processing failed.';
+      response = data.result || data.description || data.imageUrl || 'Image processing failed.';
     } else {
       res = await fetch(`/image/${feature}`, {
         method: 'POST',
@@ -114,7 +116,7 @@ async function sendRequest() {
       });
       data = await res.json();
       console.log('Image generation response:', data);
-      response = data.image || data.imageUrl || data.error || 'Image generation failed.';
+      response = data.result || data.image || data.imageUrl || data.error || 'Image generation failed.';
     }
   } catch (err) {
     console.error('Request error:', err);
@@ -140,6 +142,7 @@ async function sendRequest() {
   }
 
   saveMessage('cs', response);
+  console.log('✅ Assistant response appended:', response);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
