@@ -65,13 +65,14 @@ async function sendRequest() {
 
   if (!feature || !input) return;
 
+  // Show user message
   const userBubble = document.createElement('div');
   userBubble.className = 'user-message';
   userBubble.innerText = input;
   chatWindow.appendChild(userBubble);
   saveMessage('user', input);
 
-  // ✅ Clear input and refocus
+  // Clear input and refocus
   document.getElementById('userInput').value = '';
   document.getElementById('userInput').focus();
 
@@ -87,10 +88,12 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
-      response = data.reply || data.response || 'CS Assistant is thinking...';
+      console.log('Chat response:', data);
+      response = data.reply || 'No reply received.';
     } else if (['quote', 'motivation', 'advice'].includes(feature)) {
       res = await fetch(`/${feature}`);
       data = await res.json();
+      console.log(`${feature} response:`, data);
       response = data[feature] || `No ${feature} available.`;
     } else if (['vision', 'removebg', 'remini'].includes(feature)) {
       const payload = { imageUrl: input };
@@ -101,6 +104,7 @@ async function sendRequest() {
         body: JSON.stringify(payload)
       });
       data = await res.json();
+      console.log(`${feature} response:`, data);
       response = data.description || data.imageUrl || 'Image processing failed.';
     } else {
       res = await fetch(`/image/${feature}`, {
@@ -109,19 +113,32 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
-      response = data.image || data.imageUrl || 'Image generation failed.';
+      console.log('Image generation response:', data);
+      response = data.image || data.imageUrl || data.error || 'Image generation failed.';
     }
-
-    console.log('API response:', data);
   } catch (err) {
-    console.error('Error:', err);
+    console.error('Request error:', err);
     response = 'Something went wrong. Please try again.';
   }
 
+  // Show CS Assistant response
   const csBubble = document.createElement('div');
   csBubble.className = 'cs-message';
-  csBubble.innerText = response;
-  chatWindow.appendChild(csBubble);
+
+  if (response.startsWith('data:image') || response.startsWith('http')) {
+    csBubble.innerText = 'Here’s your image:';
+    chatWindow.appendChild(csBubble);
+
+    const img = document.createElement('img');
+    img.src = response;
+    img.style.maxWidth = '300px';
+    img.style.marginTop = '10px';
+    chatWindow.appendChild(img);
+  } else {
+    csBubble.innerText = response;
+    chatWindow.appendChild(csBubble);
+  }
+
   saveMessage('cs', response);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
