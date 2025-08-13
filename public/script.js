@@ -2,14 +2,34 @@ async function fetchQuote() {
   try {
     const res = await fetch('/quote');
     const data = await res.json();
-    document.getElementById('quoteBox').innerText = `“${data.quote}”`;
+    document.getElementById('quoteBox').innerText = `“${data.quote || 'No quote available.'}”`;
   } catch {
     document.getElementById('quoteBox').innerText = '“Unable to load quote.”';
   }
 }
 
-setInterval(fetchQuote, 60000);
-fetchQuote();
+function saveMessage(role, text) {
+  const messages = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+  messages.push({ role, text });
+  localStorage.setItem('chatHistory', JSON.stringify(messages));
+}
+
+function loadMessages() {
+  const messages = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+  const chatWindow = document.getElementById('chatWindow');
+  messages.forEach(msg => {
+    const bubble = document.createElement('div');
+    bubble.className = msg.role === 'user' ? 'user-message' : 'cs-message';
+    bubble.innerText = msg.text;
+    chatWindow.appendChild(bubble);
+  });
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function clearChat() {
+  localStorage.removeItem('chatHistory');
+  document.getElementById('chatWindow').innerHTML = '';
+}
 
 function handleFeatureChange() {
   const feature = document.getElementById('featureSelector').value;
@@ -25,14 +45,17 @@ async function uploadImage() {
   const formData = new FormData();
   formData.append('image', file);
 
-  const res = await fetch('/upload', {
-    method: 'POST',
-    body: formData
-  });
-
-  const data = await res.json();
-  document.getElementById('imagePreview').src = data.link;
-  document.getElementById('userInput').value = data.link;
+  try {
+    const res = await fetch('/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    document.getElementById('imagePreview').src = data.link;
+    document.getElementById('userInput').value = data.link;
+  } catch {
+    alert('Image upload failed.');
+  }
 }
 
 async function sendRequest() {
@@ -46,42 +69,48 @@ async function sendRequest() {
   userBubble.className = 'user-message';
   userBubble.innerText = input;
   chatWindow.appendChild(userBubble);
+  saveMessage('user', input);
 
-  let response;
+  let response = 'Processing...';
 
   try {
+    let res, data;
+
     if (feature === 'chat') {
-      const res = await fetch('/chat', {
+      res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: input })
       });
-      const data = await res.json();
-      response = data.reply;
+      data = await res.json();
+      response = data.reply || 'No reply received.';
     } else if (['quote', 'motivation', 'advice'].includes(feature)) {
-      const res = await fetch(`/${feature}`);
-      const data = await res.json();
-      response = data[feature];
+      res = await fetch(`/${feature}`);
+      data = await res.json();
+      response = data[feature] || `No ${feature} available.`;
     } else if (['vision', 'removebg', 'remini'].includes(feature)) {
       const payload = { imageUrl: input };
       if (feature === 'vision') payload.prompt = input;
-      const res = await fetch(`/${feature}`, {
+      res = await fetch(`/${feature}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      data = await res.json();
       response = data.description || data.imageUrl || 'Image processing failed.';
     } else {
-      const res = await fetch(`/image/${feature}`, {
+      res = await fetch(`/image/${feature}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: input })
       });
-      const data = await res.json();
+      data = await res.json();
       response = data.imageUrl ? `Image generated: ${data.imageUrl}` : 'Image generation failed.';
     }
-  } catch {
+
+    console.log('API response:', data);
+  } catch (err) {
+    console.error('Error:', err);
     response = 'Something went wrong. Please try again.';
   }
 
@@ -89,5 +118,11 @@ async function sendRequest() {
   csBubble.className = 'cs-message';
   csBubble.innerText = response;
   chatWindow.appendChild(csBubble);
+  saveMessage('cs', response);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
+
+window.onload = () => {
+  fetchQuote();
+  loadMessages();
+};
