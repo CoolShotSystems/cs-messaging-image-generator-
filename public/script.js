@@ -1,26 +1,13 @@
-let socket;
-
-function initSocket() {
-  socket = new WebSocket(`ws://${window.location.host}`);
-
-  socket.addEventListener('open', () => {
-    console.log('✅ Connected to WebSocket server');
-  });
-
-  socket.addEventListener('message', event => {
-    try {
-      const msg = JSON.parse(event.data);
-      console.log('📩 Incoming WS message:', msg);
-      appendMessage(msg.role, msg.text);
-    } catch (err) {
-      console.error('WebSocket parse error:', err, event.data);
-    }
-  });
-
-  socket.addEventListener('close', () => {
-    console.warn('⚠️ WebSocket disconnected, retrying in 3s...');
-    setTimeout(initSocket, 3000);
-  });
+async function fetchQuote() {
+  try {
+    const res = await fetch('/quote');
+    const data = await res.json();
+    console.log('Quote response:', data);
+    document.getElementById('quoteBox').innerText =
+      `“${data.result || data.quote || 'Stay inspired. Create boldly.'}”`;
+  } catch {
+    document.getElementById('quoteBox').innerText = '“Unable to load quote.”';
+  }
 }
 
 function saveMessage(role, text) {
@@ -32,9 +19,14 @@ function saveMessage(role, text) {
 function loadMessages() {
   const messages = JSON.parse(localStorage.getItem('chatHistory') || '[]');
   const chatWindow = document.getElementById('chatWindow');
-  chatWindow.innerHTML = '';
+  chatWindow.innerHTML = ''; // clear before reloading
   messages.forEach(msg => appendMessage(msg.role, msg.text, false));
   chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function clearChat() {
+  localStorage.removeItem('chatHistory');
+  document.getElementById('chatWindow').innerHTML = '';
 }
 
 function appendMessage(role, text, save = true) {
@@ -60,11 +52,6 @@ function appendMessage(role, text, save = true) {
 
   if (save) saveMessage(role, text);
   chatWindow.scrollTop = chatWindow.scrollHeight;
-}
-
-function clearChat() {
-  localStorage.removeItem('chatHistory');
-  document.getElementById('chatWindow').innerHTML = '';
 }
 
 function handleFeatureChange() {
@@ -105,8 +92,10 @@ async function sendRequest() {
   document.getElementById('userInput').value = '';
   document.getElementById('userInput').focus();
 
+  let response = 'Processing...';
+
   try {
-    let res, data, response;
+    let res, data;
 
     if (feature === 'chat') {
       res = await fetch('/chat', {
@@ -115,10 +104,12 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
+      console.log('Chat response:', data);
       response = data.result || data.reply || 'No reply received.';
     } else if (['quote', 'motivation', 'advice'].includes(feature)) {
       res = await fetch(`/${feature}`);
       data = await res.json();
+      console.log(`${feature} response:`, data);
       response = data.result || data[feature] || `No ${feature} available.`;
     } else if (['vision', 'removebg', 'remini'].includes(feature)) {
       const payload = { imageUrl: input };
@@ -129,6 +120,7 @@ async function sendRequest() {
         body: JSON.stringify(payload)
       });
       data = await res.json();
+      console.log(`${feature} response:`, data);
       response = data.result || data.description || data.imageUrl || 'Image processing failed.';
     } else {
       res = await fetch(`/image/${feature}`, {
@@ -137,40 +129,37 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
+      console.log('Image generation response:', data);
       response = data.result || data.image || data.imageUrl || data.error || 'Image generation failed.';
     }
-
-    appendMessage('cs', response);
   } catch (err) {
     console.error('Request error:', err);
-    appendMessage('cs', 'Something went wrong. Please try again.');
+    response = 'Something went wrong. Please try again.';
   }
+
+  appendMessage('cs', response);
 }
 
-// Rotating quote function
-let quotes = [];
-let quoteIndex = 0;
-
-async function fetchQuotesList() {
+// Poll for new messages from server
+async function pollMessages() {
   try {
-    const res = await fetch('/quotes'); // should return an array of quotes
-    quotes = await res.json();
-    if (quotes.length > 0) rotateQuote();
-  } catch (err) {
-    console.error('Quote fetch error:', err);
-  }
-}
+    const res = await fetch('/messages'); // Backend should return latest messages
+    const serverMessages = await res.json();
+    const storedMessages = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 
-function rotateQuote() {
-  if (quotes.length === 0) return;
-  const quoteBox = document.getElementById('quoteBox');
-  quoteBox.innerText = `“${quotes[quoteIndex]}”`;
-  quoteIndex = (quoteIndex + 1) % quotes.length;
-  setTimeout(rotateQuote, 5000); // change every 5 seconds
+    // Find messages not in local storage
+    const newMessages = serverMessages.filter(sm =>
+      !storedMessages.some(st => st.role === sm.role && st.text === sm.text)
+    );
+
+    newMessages.forEach(msg => appendMessage(msg.role, msg.text));
+  } catch (err) {
+    console.error('Polling error:', err);
+  }
 }
 
 window.onload = () => {
-  initSocket();
-  fetchQuotesList();
+  fetchQuote();
   loadMessages();
+  setInterval(pollMessages, 3000); // check every 3 seconds
 };
