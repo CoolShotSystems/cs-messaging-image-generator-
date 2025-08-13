@@ -15,30 +15,35 @@
   <main>
     <section id="chatArea">
       <div id="chatWindow"></div>
-      <div id="inputArea">
-        <select id="featureSelector" onchange="handleFeatureChange()">
-          <option value="">-- Select Feature --</option>
-          <option value="chat">💬 Chat</option>
-          <option value="vision">🖼️ Describe Image</option>
-          <option value="text2img">🎨 Generate Image</option>
-          <option value="fluximg">🌀 Flux Style</option>
-          <option value="ghibli">🏞️ Ghibli Style</option>
-          <option value="deepimg">🧠 Deep Style</option>
-          <option value="sd">🌾 Stable Diffusion</option>
-          <option value="removebg">🧹 Remove Background</option>
-          <option value="remini">✨ Enhance Image</option>
-          <option value="quote">📜 Quote</option>
-          <option value="motivation">🔥 Motivation</option>
-          <option value="advice">🧠 Advice</option>
-        </select>
-        <input id="userInput" placeholder="Type your message or prompt..." />
-        <button onclick="sendRequest()">Send</button>
-      </div>
 
-      <div id="imageUploadArea" style="display: none;">
-        <input type="file" id="imageInput" accept="image/*" />
-        <button onclick="uploadImage()">Upload Image</button>
-        <img id="imagePreview" src="" alt="Preview" style="max-width: 300px; margin-top: 10px;" />
+      <div id="inputControls">
+        <div id="inputArea">
+          <select id="featureSelector" onchange="handleFeatureChange()">
+            <option value="">-- Select Feature --</option>
+            <option value="chat">💬 Chat</option>
+            <option value="vision">🖼️ Describe Image</option>
+            <option value="text2img">🎨 Generate Image</option>
+            <option value="fluximg">🌀 Flux Style</option>
+            <option value="ghibli">🏞️ Ghibli Style</option>
+            <option value="deepimg">🧠 Deep Style</option>
+            <option value="sd">🌾 Stable Diffusion</option>
+            <option value="removebg">🧹 Remove Background</option>
+            <option value="remini">✨ Enhance Image</option>
+            <option value="quote">📜 Quote</option>
+            <option value="motivation">🔥 Motivation</option>
+            <option value="advice">🧠 Advice</option>
+          </select>
+
+          <input id="userInput" placeholder="Type your message or paste image URL..." />
+          <button onclick="sendRequest()">Send</button>
+          <button onclick="clearChat()">🧹 Clear Chat</button>
+        </div>
+
+        <div id="imageUploadArea" style="display: none;">
+          <input type="file" id="imageInput" accept="image/*" />
+          <button onclick="uploadImage()">Upload Image</button>
+          <img id="imagePreview" src="" alt="Preview" style="max-width: 300px; margin-top: 10px;" />
+        </div>
       </div>
     </section>
   </main>
