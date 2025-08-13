@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CS Assistant | Cool Shot Systems</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>CS Assistant</h1>
+    <div id="quoteBox" class="quote">“Loading quote...”</div>
+  </header>
+
+  <main>
+    <section id="chatArea">
+      <div id="chatWindow"></div>
+      <div id="inputArea">
+        <select id="featureSelector" onchange="handleFeatureChange()">
+          <option value="">-- Select Feature --</option>
+          <option value="chat">💬 Chat</option>
+          <option value="vision">🖼️ Describe Image</option>
+          <option value="text2img">🎨 Generate Image</option>
+          <option value="fluximg">🌀 Flux Style</option>
+          <option value="ghibli">🏞️ Ghibli Style</option>
+          <option value="deepimg">🧠 Deep Style</option>
+          <option value="sd">🌾 Stable Diffusion</option>
+          <option value="removebg">🧹 Remove Background</option>
+          <option value="remini">✨ Enhance Image</option>
+          <option value="quote">📜 Quote</option>
+          <option value="motivation">🔥 Motivation</option>
+          <option value="advice">🧠 Advice</option>
+        </select>
+        <input id="userInput" placeholder="Type your message or prompt..." />
+        <button onclick="sendRequest()">Send</button>
+      </div>
+
+      <div id="imageUploadArea" style="display: none;">
+        <input type="file" id="imageInput" accept="image/*" />
+        <button onclick="uploadImage()">Upload Image</button>
+        <img id="imagePreview" src="" alt="Preview" style="max-width: 300px; margin-top: 10px;" />
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 Cool Shot Systems | Built by Heritage Oladoye</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
