@@ -89,7 +89,7 @@ async function sendRequest() {
       });
       data = await res.json();
       console.log('Chat response:', data);
-      response = data.reply || 'No reply received.';
+      response = data.result || data.reply || 'No reply received.';
     } else if (['quote', 'motivation', 'advice'].includes(feature)) {
       res = await fetch(`/${feature}`);
       data = await res.json();
