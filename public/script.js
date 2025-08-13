@@ -2,7 +2,7 @@ async function fetchQuote() {
   try {
     const res = await fetch('/quote');
     const data = await res.json();
-    document.getElementById('quoteBox').innerText = `“${data.quote || 'No quote available.'}”`;
+    document.getElementById('quoteBox').innerText = `“${data.quote || 'Stay inspired. Create boldly.'}”`;
   } catch {
     document.getElementById('quoteBox').innerText = '“Unable to load quote.”';
   }
@@ -60,7 +60,7 @@ async function uploadImage() {
 
 async function sendRequest() {
   const feature = document.getElementById('featureSelector').value;
-  const input = document.getElementById('userInput').value;
+  const input = document.getElementById('userInput').value.trim();
   const chatWindow = document.getElementById('chatWindow');
 
   if (!feature || !input) return;
@@ -70,6 +70,10 @@ async function sendRequest() {
   userBubble.innerText = input;
   chatWindow.appendChild(userBubble);
   saveMessage('user', input);
+
+  // ✅ Clear input and refocus
+  document.getElementById('userInput').value = '';
+  document.getElementById('userInput').focus();
 
   let response = 'Processing...';
 
@@ -83,7 +87,7 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
-      response = data.reply || 'No reply received.';
+      response = data.reply || data.response || 'CS Assistant is thinking...';
     } else if (['quote', 'motivation', 'advice'].includes(feature)) {
       res = await fetch(`/${feature}`);
       data = await res.json();
@@ -105,7 +109,7 @@ async function sendRequest() {
         body: JSON.stringify({ prompt: input })
       });
       data = await res.json();
-      response = data.imageUrl ? `Image generated: ${data.imageUrl}` : 'Image generation failed.';
+      response = data.image || data.imageUrl || 'Image generation failed.';
     }
 
     console.log('API response:', data);
